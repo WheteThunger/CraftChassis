@@ -2,6 +2,8 @@
 
 The UI appears only if the player has permission and is "looting" a car lift that currently has no car on it.
 
+Also recommended: [Monument Lifts](https://umod.org/plugins/monument-lifts) (adds public car lifts to select monuments).
+
 ## UI Screenshots
 
 ![Craft Chassis UI Buttons](https://i.imgur.com/3euUusz.png)
