@@ -34,12 +34,14 @@ Default configuration:
       "ItemShortName": "metal.fragments"
     }
   },
-  "EnableEffects": true
+  "EnableEffects": true,
+  "SetOwner": false
 }
 ```
 
 - `ChassisCost` -- Setting a particular chassis cost `Amount` to `0` will make it free for everyone who has permission.
 - `EnableEffects` (`true` or `false`) -- Whether to play an effect when a chassis is crafted.
+- `SetOwner` (`true` or `false`) -- Whether to set the `OwnerID` of the chassis to the Steam ID of the player that crafted it. Setting `OwnerID` will allow various plugins to recognize cars spawned by this plugin so they can enable certain features (such as being able to pick up the car). This is off by default since there is no predicting how another plugin might behave when `OwnerID` is set (depends on which plugins you are running).
 
 ## Localization
 

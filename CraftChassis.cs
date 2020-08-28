@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.0.0")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.1.0")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
@@ -92,7 +92,7 @@ namespace Oxide.Plugins
             ModularCarGarage carLift;
             if (!PlayerLifts.TryGetValue(basePlayer, out carLift) || carLift.carOccupant != null) return;
 
-            var car = SpawnChassis(carLift, numSockets);
+            var car = SpawnChassis(carLift, numSockets, basePlayer);
             if (car == null) return;
 
             if (PluginConfig.EnableEffects)
@@ -110,7 +110,7 @@ namespace Oxide.Plugins
 
         #region Helper Methods
 
-        private ModularCar SpawnChassis(ModularCarGarage carLift, int numSockets)
+        private ModularCar SpawnChassis(ModularCarGarage carLift, int numSockets, BasePlayer player)
         {
             var prefab = GetChassisPrefab(numSockets);
 
@@ -119,6 +119,10 @@ namespace Oxide.Plugins
 
             var car = GameManager.server.CreateEntity(prefab, position, rotation) as ModularCar;
             if (car == null) return null;
+
+            if (PluginConfig.SetOwner)
+                car.OwnerID = player.userID;
+
             car.Spawn();
 
             return car;
@@ -380,6 +384,9 @@ namespace Oxide.Plugins
 
             [JsonProperty("EnableEffects")]
             public bool EnableEffects = true;
+
+            [JsonProperty("SetOwner")]
+            public bool SetOwner = false;
         }
 
         internal class ChassisCostMap
