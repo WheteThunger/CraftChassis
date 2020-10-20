@@ -279,7 +279,7 @@ namespace Oxide.Plugins
                 return new CuiButton
                 {
                     Text = {
-                        Text = PluginInstance.GetMessage(player.IPlayer, "UI.ButtonText.Sockets", numSockets),
+                        Text = PluginInstance.GetMessage(player.IPlayer, $"UI.ButtonText.Sockets.{numSockets}"),
                         Color = TextColor,
                         Align = TextAnchor.MiddleCenter
                     },
@@ -439,7 +439,9 @@ namespace Oxide.Plugins
                 ["UI.Header"] = "Craft a chassis",
                 ["UI.CostLabel.Free"] = "Free",
                 ["UI.CostLabel.NoPermission"] = "No Permission",
-                ["UI.ButtonText.Sockets"] = "{0} sockets",
+                ["UI.ButtonText.Sockets.2"] = "2 sockets",
+                ["UI.ButtonText.Sockets.3"] = "3 sockets",
+                ["UI.ButtonText.Sockets.4"] = "4 sockets",
             }, this, "en");
         }
 

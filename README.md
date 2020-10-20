@@ -50,6 +50,8 @@ Default configuration:
   "UI.Header": "Craft a chassis",
   "UI.CostLabel.Free": "Free",
   "UI.CostLabel.NoPermission": "No Permission",
-  "UI.ButtonText.Sockets": "{0} sockets"
+  "UI.ButtonText.Sockets.2": "2 sockets",
+  "UI.ButtonText.Sockets.3": "3 sockets",
+  "UI.ButtonText.Sockets.4": "4 sockets"
 }
 ```
