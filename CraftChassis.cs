@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.1.0")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.2.0")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
