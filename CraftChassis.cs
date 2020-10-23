@@ -28,6 +28,7 @@ namespace Oxide.Plugins
         private const string PermissionCraft3 = "craftchassis.3";
         private const string PermissionCraft4 = "craftchassis.4";
         private const string PermissionFree = "craftchassis.free";
+        private const string PermissionFuel = "craftchassis.fuel";
 
         private const string ChassisPrefab2 = "assets/content/vehicles/modularcar/car_chassis_2module.entity.prefab";
         private const string ChassisPrefab3 = "assets/content/vehicles/modularcar/car_chassis_3module.entity.prefab";
@@ -52,6 +53,7 @@ namespace Oxide.Plugins
             permission.RegisterPermission(PermissionCraft3, this);
             permission.RegisterPermission(PermissionCraft4, this);
             permission.RegisterPermission(PermissionFree, this);
+            permission.RegisterPermission(PermissionFuel, this);
         }
 
         private void Unload()
@@ -130,14 +132,38 @@ namespace Oxide.Plugins
             var rotation = Quaternion.Euler(0, carLift.GetNetworkRotation().eulerAngles.y - 90, 0);
 
             var car = GameManager.server.CreateEntity(prefab, position, rotation) as ModularCar;
-            if (car == null) return null;
+            if (car == null)
+                return null;
 
             if (pluginConfig.SetOwner)
                 car.OwnerID = player.userID;
 
             car.Spawn();
+            AddOrRestoreFuel(car, player);
 
             return car;
+        }
+
+        private void AddOrRestoreFuel(ModularCar car, BasePlayer player)
+        {
+            var desiredFuelAmount = pluginConfig.FuelAmount;
+            if (desiredFuelAmount == 0 || !permission.UserHasPermission(player.UserIDString, PermissionFuel))
+                return;
+
+            var fuelContainer = car.fuelSystem.GetFuelContainer();
+            if (desiredFuelAmount < 0)
+                desiredFuelAmount = fuelContainer.allowedItem.stackable;
+
+            var fuelItem = fuelContainer.inventory.FindItemByItemID(fuelContainer.allowedItem.itemid);
+            if (fuelItem == null)
+            {
+                fuelContainer.inventory.AddItem(fuelContainer.allowedItem, desiredFuelAmount);
+            }
+            else if (fuelItem.amount < desiredFuelAmount)
+            {
+                fuelItem.amount = desiredFuelAmount;
+                fuelItem.MarkDirty();
+            }
         }
 
         private string GetChassisPrefab(int numSockets)
@@ -449,6 +475,9 @@ namespace Oxide.Plugins
             [JsonProperty("ChassisCost")]
             public ChassisCostMap ChassisCostMap = new ChassisCostMap();
 
+            [JsonProperty("FuelAmount")]
+            public int FuelAmount = 0;
+
             [JsonProperty("EnableEffects")]
             public bool EnableEffects = true;
 
@@ -482,11 +511,11 @@ namespace Oxide.Plugins
 
         internal class ChassisCost
         {
-            [JsonProperty("ItemShortName")]
-            public string itemShortName;
-
             [JsonProperty("Amount")]
             public int amount;
+
+            [JsonProperty("ItemShortName")]
+            public string itemShortName;
 
             [JsonProperty("UseEconomics", DefaultValueHandling = DefaultValueHandling.Ignore)]
             public bool useEconomics = false;
