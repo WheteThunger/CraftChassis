@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.2.0")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.2.1")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
@@ -408,10 +408,10 @@ namespace Oxide.Plugins
                             Image = new CuiImageComponent { Color = PanelBackgroundColor },
                             RectTransform =
                             {
-                                AnchorMin = "1 0",
-                                AnchorMax = "1 0",
-                                OffsetMin = "-447.5 431",
-                                OffsetMax = "-67.5 495",
+                                AnchorMin = "0.5 0",
+                                AnchorMax = "0.5 0",
+                                OffsetMin = "192.5 431",
+                                OffsetMax = "572.5 495",
                             }
                         },
                         "Hud.Menu",
