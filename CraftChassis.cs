@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.2.2")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.2.3")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
@@ -204,41 +204,41 @@ namespace Oxide.Plugins
 
         private bool CanPlayerAffordCost(BasePlayer basePlayer, ChassisCost chassisCost)
         {
-            return chassisCost.amount == 0 || GetPlayerCurrencyAmount(basePlayer, chassisCost, out _) >= chassisCost.amount;
+            return chassisCost.Amount == 0 || GetPlayerCurrencyAmount(basePlayer, chassisCost, out _) >= chassisCost.Amount;
         }
 
         private void ChargePlayer(BasePlayer basePlayer, ChassisCost chassisCost)
         {
-            if (chassisCost.amount == 0)
+            if (chassisCost.Amount == 0)
                 return;
 
-            if (chassisCost.useEconomics && Economics != null)
+            if (chassisCost.UseEconomics && Economics != null)
             {
-                Economics.Call("Withdraw", basePlayer.userID, Convert.ToDouble(chassisCost.amount));
+                Economics.Call("Withdraw", basePlayer.userID, Convert.ToDouble(chassisCost.Amount));
                 return;
             }
 
-            if (chassisCost.useServerRewards && ServerRewards != null)
+            if (chassisCost.UseServerRewards && ServerRewards != null)
             {
-                ServerRewards.Call("TakePoints", basePlayer.userID, chassisCost.amount);
+                ServerRewards.Call("TakePoints", basePlayer.userID, chassisCost.Amount);
                 return;
             }
 
-            var itemid = ItemManager.itemDictionaryByName[chassisCost.itemShortName].itemid;
-            basePlayer.inventory.Take(null, itemid, chassisCost.amount);
-            basePlayer.Command("note.inv", itemid, -chassisCost.amount);
+            var itemid = ItemManager.itemDictionaryByName[chassisCost.ItemShortName].itemid;
+            basePlayer.inventory.Take(null, itemid, chassisCost.Amount);
+            basePlayer.Command("note.inv", itemid, -chassisCost.Amount);
         }
 
         private double GetPlayerCurrencyAmount(BasePlayer basePlayer, ChassisCost chassisCost, out CurrencyType currencyType)
         {
-            if (chassisCost.useEconomics && Economics != null)
+            if (chassisCost.UseEconomics && Economics != null)
             {
                 var balance = Economics.Call("Balance", basePlayer.userID);
                 currencyType = CurrencyType.Economics;
                 return balance as double? ?? 0;
             }
 
-            if (chassisCost.useServerRewards && ServerRewards != null)
+            if (chassisCost.UseServerRewards && ServerRewards != null)
             {
                 var points = ServerRewards.Call("CheckPoints", basePlayer.userID);
                 currencyType = CurrencyType.ServerRewards;
@@ -246,7 +246,7 @@ namespace Oxide.Plugins
             }
 
             currencyType = CurrencyType.Items;
-            return basePlayer.inventory.GetAmount(ItemManager.itemDictionaryByName[chassisCost.itemShortName].itemid);
+            return basePlayer.inventory.GetAmount(ItemManager.itemDictionaryByName[chassisCost.ItemShortName].itemid);
         }
 
         private ChassisCost GetCostForSockets(int numSockets)
@@ -312,25 +312,25 @@ namespace Oxide.Plugins
                 else if (!freeCrafting)
                 {
                     var chassisCost = plugin.GetCostForSockets(numSockets);
-                    if (chassisCost.amount > 0)
+                    if (chassisCost.Amount > 0)
                     {
                         var playerCurrencyAmount = plugin.GetPlayerCurrencyAmount(player, chassisCost, out var currencyType);
 
                         switch (currencyType)
                         {
                             case CurrencyType.Economics:
-                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.Economics", chassisCost.amount);
+                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.Economics", chassisCost.Amount);
                                 break;
                             case CurrencyType.ServerRewards:
-                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.ServerRewards", chassisCost.amount);
+                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.ServerRewards", chassisCost.Amount);
                                 break;
                             default:
-                                var itemDefinition = ItemManager.itemDictionaryByName[chassisCost.itemShortName];
-                                text = $"{chassisCost.amount} {itemDefinition.displayName.translated}";
+                                var itemDefinition = ItemManager.itemDictionaryByName[chassisCost.ItemShortName];
+                                text = $"{chassisCost.Amount} {itemDefinition.displayName.translated}";
                                 break;
                         }
 
-                        if (playerCurrencyAmount < chassisCost.amount)
+                        if (playerCurrencyAmount < chassisCost.Amount)
                             color = DisabledLabelTextColor;
                     }
                 }
@@ -475,16 +475,16 @@ namespace Oxide.Plugins
         private class ChassisCost
         {
             [JsonProperty("Amount")]
-            public int amount;
+            public int Amount;
 
             [JsonProperty("ItemShortName")]
-            public string itemShortName;
+            public string ItemShortName;
 
-            [JsonProperty("UseEconomics", DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public bool useEconomics = false;
+            [JsonProperty("UseEconomics")]
+            public bool UseEconomics;
 
-            [JsonProperty("UseServerRewards", DefaultValueHandling = DefaultValueHandling.Ignore)]
-            public bool useServerRewards = false;
+            [JsonProperty("UseServerRewards")]
+            public bool UseServerRewards;
         }
 
         private class ChassisCostMap
@@ -492,22 +492,22 @@ namespace Oxide.Plugins
             [JsonProperty("2sockets")]
             public ChassisCost ChassisCost2 = new()
             {
-                itemShortName = "metal.fragments",
-                amount = 200,
+                ItemShortName = "metal.fragments",
+                Amount = 200,
             };
 
             [JsonProperty("3sockets")]
             public ChassisCost ChassisCost3 = new()
             {
-                itemShortName = "metal.fragments",
-                amount = 300,
+                ItemShortName = "metal.fragments",
+                Amount = 300,
             };
 
             [JsonProperty("4sockets")]
             public ChassisCost ChassisCost4 = new()
             {
-                itemShortName = "metal.fragments",
-                amount = 400,
+                ItemShortName = "metal.fragments",
+                Amount = 400,
             };
         }
 
