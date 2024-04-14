@@ -57,16 +57,3 @@ Default configuration:
 - `SetOwner` (`true` or `false`) -- Whether to set the `OwnerID` of the chassis to the Steam ID of the player that crafted it. Setting `OwnerID` will allow various plugins to recognize cars spawned by this plugin so they can enable certain features (such as being able to pick up the car). This is off by default since there is no predicting how another plugin might behave when `OwnerID` is set (depends on which plugins you are running).
 
 ## Localization
-
-```json
-{
-  "UI.Header": "Craft a chassis",
-  "UI.CostLabel.Free": "Free",
-  "UI.CostLabel.NoPermission": "No Permission",
-  "UI.CostLabel.Economics": "{0:C}",
-  "UI.CostLabel.ServerRewards": "{0} reward points",
-  "UI.ButtonText.Sockets.2": "2 sockets",
-  "UI.ButtonText.Sockets.3": "3 sockets",
-  "UI.ButtonText.Sockets.4": "4 sockets"
-}
-```
