@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
 using Oxide.Core.Libraries.Covalence;
 using Oxide.Core.Plugins;
 using Oxide.Game.Rust.Cui;
@@ -20,9 +19,7 @@ namespace Oxide.Plugins
         [PluginReference]
         private Plugin Economics, ServerRewards;
 
-        private static CraftChassis _pluginInstance;
-
-        private Configuration _pluginConfig;
+        private Configuration _config;
 
         private const string PermissionCraft2 = "craftchassis.2";
         private const string PermissionCraft3 = "craftchassis.3";
@@ -35,8 +32,8 @@ namespace Oxide.Plugins
         private const string ChassisPrefab4 = "assets/content/vehicles/modularcar/car_chassis_4module.entity.prefab";
         private const string SpawnEffect = "assets/bundled/prefabs/fx/build/promote_toptier.prefab";
 
-        private readonly Dictionary<BasePlayer, ModularCarGarage> playerLifts = new Dictionary<BasePlayer, ModularCarGarage>();
-        private readonly ChassisUIManager uiManager = new ChassisUIManager();
+        private readonly Dictionary<BasePlayer, ModularCarGarage> playerLifts = new();
+        private readonly ChassisUIManager uiManager = new();
 
         private enum CurrencyType { Items, Economics, ServerRewards }
 
@@ -46,9 +43,6 @@ namespace Oxide.Plugins
 
         private void Init()
         {
-            _pluginInstance = this;
-            _pluginConfig = Config.ReadObject<Configuration>();
-
             permission.RegisterPermission(PermissionCraft2, this);
             permission.RegisterPermission(PermissionCraft3, this);
             permission.RegisterPermission(PermissionCraft4, this);
@@ -59,7 +53,6 @@ namespace Oxide.Plugins
         private void Unload()
         {
             uiManager.DestroyAllUIs();
-            _pluginInstance = null;
         }
 
         private void OnLootEntity(BasePlayer player, ModularCarGarage carLift)
@@ -70,7 +63,7 @@ namespace Oxide.Plugins
             if (carLift.carOccupant == null)
             {
                 playerLifts.Add(player, carLift);
-                uiManager.MaybeSendPlayerUI(player);
+                uiManager.MaybeSendPlayerUI(this, player);
             }
             else
             {
@@ -98,28 +91,25 @@ namespace Oxide.Plugins
             if (player.IsServer || args.Length < 1)
                 return;
 
-            int numSockets;
-            if (!int.TryParse(args[0], out numSockets))
+            if (!int.TryParse(args[0], out var numSockets))
                 return;
 
             var maxAllowedSockets = GetMaxAllowedSockets(player);
             if (numSockets < 2 || numSockets > maxAllowedSockets)
                 return;
 
-            ChassisCost chassisCost;
-            if (!CanPlayerCreateChassis(player, numSockets, out chassisCost))
+            if (!CanPlayerCreateChassis(player, numSockets, out var chassisCost))
                 return;
 
             var basePlayer = player.Object as BasePlayer;
-            ModularCarGarage carLift;
-            if (!playerLifts.TryGetValue(basePlayer, out carLift) || carLift.carOccupant != null)
+            if (!playerLifts.TryGetValue(basePlayer, out var carLift) || carLift.carOccupant != null)
                 return;
 
             var car = SpawnChassis(carLift, numSockets, basePlayer);
             if (car == null)
                 return;
 
-            if (_pluginConfig.EnableEffects)
+            if (_config.EnableEffects)
                 Effect.server.Run(SpawnEffect, car.transform.position);
 
             if (chassisCost != null)
@@ -141,7 +131,7 @@ namespace Oxide.Plugins
             if (car == null)
                 return null;
 
-            if (_pluginConfig.SetOwner)
+            if (_config.SetOwner)
                 car.OwnerID = player.userID;
 
             car.Spawn();
@@ -152,7 +142,7 @@ namespace Oxide.Plugins
 
         private void AddOrRestoreFuel(ModularCar car, BasePlayer player)
         {
-            var desiredFuelAmount = _pluginConfig.FuelAmount;
+            var desiredFuelAmount = _config.FuelAmount;
             if (desiredFuelAmount == 0 || !permission.UserHasPermission(player.UserIDString, PermissionFuel))
                 return;
 
@@ -176,22 +166,25 @@ namespace Oxide.Plugins
         {
             if (numSockets == 4)
                 return ChassisPrefab4;
-            else if (numSockets == 3)
+
+            if (numSockets == 3)
                 return ChassisPrefab3;
-            else
-                return ChassisPrefab2;
+
+            return ChassisPrefab2;
         }
 
         private int GetMaxAllowedSockets(IPlayer player)
         {
             if (player.HasPermission(PermissionCraft4))
                 return 4;
-            else if (player.HasPermission(PermissionCraft3))
+
+            if (player.HasPermission(PermissionCraft3))
                 return 3;
-            else if (player.HasPermission(PermissionCraft2))
+
+            if (player.HasPermission(PermissionCraft2))
                 return 2;
-            else
-                return 0;
+
+            return 0;
         }
 
         private bool CanPlayerCreateChassis(IPlayer player, int numSockets, out ChassisCost chassisCost)
@@ -204,13 +197,14 @@ namespace Oxide.Plugins
             return CanPlayerAffordCost(player.Object as BasePlayer, chassisCost);
         }
 
-        private bool CanPlayerAffordSockets(BasePlayer basePlayer, int sockets) =>
-            CanPlayerAffordCost(basePlayer, GetCostForSockets(sockets));
+        private bool CanPlayerAffordSockets(BasePlayer basePlayer, int sockets)
+        {
+            return CanPlayerAffordCost(basePlayer, GetCostForSockets(sockets));
+        }
 
         private bool CanPlayerAffordCost(BasePlayer basePlayer, ChassisCost chassisCost)
         {
-            CurrencyType currencyType;
-            return chassisCost.amount == 0 || GetPlayerCurrencyAmount(basePlayer, chassisCost, out currencyType) >= chassisCost.amount;
+            return chassisCost.amount == 0 || GetPlayerCurrencyAmount(basePlayer, chassisCost, out _) >= chassisCost.amount;
         }
 
         private void ChargePlayer(BasePlayer basePlayer, ChassisCost chassisCost)
@@ -241,14 +235,14 @@ namespace Oxide.Plugins
             {
                 var balance = Economics.Call("Balance", basePlayer.userID);
                 currencyType = CurrencyType.Economics;
-                return balance is double ? (double)balance : 0;
+                return balance as double? ?? 0;
             }
 
             if (chassisCost.useServerRewards && ServerRewards != null)
             {
                 var points = ServerRewards.Call("CheckPoints", basePlayer.userID);
                 currencyType = CurrencyType.ServerRewards;
-                return points is int ? (int)points : 0;
+                return points is int i ? i : 0;
             }
 
             currencyType = CurrencyType.Items;
@@ -258,11 +252,12 @@ namespace Oxide.Plugins
         private ChassisCost GetCostForSockets(int numSockets)
         {
             if (numSockets == 4)
-                return _pluginConfig.ChassisCostMap.ChassisCost4;
+                return _config.ChassisCostMap.ChassisCost4;
+
             if (numSockets == 3)
-                return _pluginConfig.ChassisCostMap.ChassisCost3;
-            else
-                return _pluginConfig.ChassisCostMap.ChassisCost2;
+                return _config.ChassisCostMap.ChassisCost3;
+
+            return _config.ChassisCostMap.ChassisCost2;
         }
 
         #endregion
@@ -280,7 +275,7 @@ namespace Oxide.Plugins
             private const string CraftChassisUIName = "CraftChassis";
             private const string CraftChassisUIHeaderName = "CraftChassis.Header";
 
-            private readonly List<BasePlayer> PlayersWithUIs = new List<BasePlayer>();
+            private readonly List<BasePlayer> PlayersWithUIs = new();
 
             public void DestroyAllUIs()
             {
@@ -288,7 +283,9 @@ namespace Oxide.Plugins
                 PlayersWithUIs.CopyTo(playerList, 0);
 
                 foreach (var player in playerList)
+                {
                     DestroyPlayerUI(player);
+                }
             }
 
             public void DestroyPlayerUI(BasePlayer player)
@@ -300,33 +297,32 @@ namespace Oxide.Plugins
                 }
             }
 
-            private CuiLabel CreateCostLabel(BasePlayer player, bool freeCrafting, int maxAllowedSockets, int numSockets)
+            private CuiLabel CreateCostLabel(CraftChassis plugin, BasePlayer player, bool freeCrafting, int maxAllowedSockets, int numSockets)
             {
-                var freeLabel = _pluginInstance.GetMessage(player.IPlayer, "UI.CostLabel.Free");
+                var freeLabel = plugin.GetMessage(player.IPlayer, "UI.CostLabel.Free");
 
-                string text = freeLabel;
-                string color = TextColor;
+                var text = freeLabel;
+                var color = TextColor;
 
                 if (numSockets > maxAllowedSockets)
                 {
-                    text = _pluginInstance.GetMessage(player.IPlayer, "UI.CostLabel.NoPermission");
+                    text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.NoPermission");
                     color = DisabledLabelTextColor;
                 }
                 else if (!freeCrafting)
                 {
-                    var chassisCost = _pluginInstance.GetCostForSockets(numSockets);
+                    var chassisCost = plugin.GetCostForSockets(numSockets);
                     if (chassisCost.amount > 0)
                     {
-                        CurrencyType currencyType;
-                        var playerCurrencyAmount = _pluginInstance.GetPlayerCurrencyAmount(player, chassisCost, out currencyType);
+                        var playerCurrencyAmount = plugin.GetPlayerCurrencyAmount(player, chassisCost, out var currencyType);
 
                         switch (currencyType)
                         {
                             case CurrencyType.Economics:
-                                text = _pluginInstance.GetMessage(player.IPlayer, "UI.CostLabel.Economics", chassisCost.amount);
+                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.Economics", chassisCost.amount);
                                 break;
                             case CurrencyType.ServerRewards:
-                                text = _pluginInstance.GetMessage(player.IPlayer, "UI.CostLabel.ServerRewards", chassisCost.amount);
+                                text = plugin.GetMessage(player.IPlayer, "UI.CostLabel.ServerRewards", chassisCost.amount);
                                 break;
                             default:
                                 var itemDefinition = ItemManager.itemDictionaryByName[chassisCost.itemShortName];
@@ -339,10 +335,10 @@ namespace Oxide.Plugins
                     }
                 }
 
-                int offsetMinX = 8 + (numSockets - 2) * 124;
-                int offsetMaxX = 124 + (numSockets - 2) * 124;
-                int offsetMinY = 43;
-                int offsetMaxY = 58;
+                var offsetMinX = 8 + (numSockets - 2) * 124;
+                var offsetMaxX = 124 + (numSockets - 2) * 124;
+                var offsetMinY = 43;
+                var offsetMaxY = 58;
 
                 return new CuiLabel
                 {
@@ -358,51 +354,51 @@ namespace Oxide.Plugins
                         AnchorMin = "0 0",
                         AnchorMax = "0 0",
                         OffsetMin = $"{offsetMinX} {offsetMinY}",
-                        OffsetMax = $"{offsetMaxX} {offsetMaxY}"
-                    }
+                        OffsetMax = $"{offsetMaxX} {offsetMaxY}",
+                    },
                 };
             }
 
-            private CuiButton CreateCraftButton(BasePlayer player, bool freeCrafting, int maxAllowedSockets, int numSockets)
+            private CuiButton CreateCraftButton(CraftChassis plugin, BasePlayer player, bool freeCrafting, int maxAllowedSockets, int numSockets)
             {
                 var color = ButtonColor;
 
-                if (numSockets > maxAllowedSockets || !freeCrafting && !_pluginInstance.CanPlayerAffordSockets(player, numSockets))
+                if (numSockets > maxAllowedSockets || !freeCrafting && !plugin.CanPlayerAffordSockets(player, numSockets))
                     color = DisabledButtonColor;
 
-                int offsetMinX = 8 + (numSockets - 2) * 124;
-                int offsetMaxX = 124 + (numSockets - 2) * 124;
-                int offsetMinY = 8;
-                int offsetMaxY = 40;
+                var offsetMinX = 8 + (numSockets - 2) * 124;
+                var offsetMaxX = 124 + (numSockets - 2) * 124;
+                var offsetMinY = 8;
+                var offsetMaxY = 40;
 
                 return new CuiButton
                 {
                     Text = {
-                        Text = _pluginInstance.GetMessage(player.IPlayer, $"UI.ButtonText.Sockets.{numSockets}"),
+                        Text = plugin.GetMessage(player.IPlayer, $"UI.ButtonText.Sockets.{numSockets}"),
                         Color = TextColor,
-                        Align = TextAnchor.MiddleCenter
+                        Align = TextAnchor.MiddleCenter,
                     },
                     Button =
                     {
                         Color = color,
-                        Command = $"craftchassis.ui {numSockets}"
+                        Command = $"craftchassis.ui {numSockets}",
                     },
                     RectTransform =
                     {
                         AnchorMin = "0 0",
                         AnchorMax = "0 0",
                         OffsetMin = $"{offsetMinX} {offsetMinY}",
-                        OffsetMax = $"{offsetMaxX} {offsetMaxY}"
-                    }
+                        OffsetMax = $"{offsetMaxX} {offsetMaxY}",
+                    },
                 };
             }
 
-            public void MaybeSendPlayerUI(BasePlayer player)
+            public void MaybeSendPlayerUI(CraftChassis plugin, BasePlayer player)
             {
                 if (PlayersWithUIs.Contains(player))
                     return;
 
-                var maxAllowedSockets = _pluginInstance.GetMaxAllowedSockets(player.IPlayer);
+                var maxAllowedSockets = plugin.GetMaxAllowedSockets(player.IPlayer);
                 if (maxAllowedSockets == 0)
                     return;
 
@@ -420,7 +416,7 @@ namespace Oxide.Plugins
                                 AnchorMax = "0.5 0",
                                 OffsetMin = "192.5 431",
                                 OffsetMax = "572.5 495",
-                            }
+                            },
                         },
                         "Hud.Menu",
                         CraftChassisUIName
@@ -434,8 +430,8 @@ namespace Oxide.Plugins
                                 AnchorMin = "0 1",
                                 AnchorMax = "0 1",
                                 OffsetMin = "0 3",
-                                OffsetMax = "380 24"
-                            }
+                                OffsetMax = "380 24",
+                            },
                         },
                         CraftChassisUIName,
                         CraftChassisUIHeaderName
@@ -448,23 +444,23 @@ namespace Oxide.Plugins
                                 AnchorMin = "0 0",
                                 AnchorMax = "1 1",
                                 OffsetMin = "10 0",
-                                OffsetMax = "0 0"
+                                OffsetMax = "0 0",
                             },
                             Text =
                             {
-                                Text = _pluginInstance.GetMessage(player.IPlayer, "UI.Header").ToUpperInvariant(),
+                                Text = plugin.GetMessage(player.IPlayer, "UI.Header").ToUpperInvariant(),
                                 Align = TextAnchor.MiddleLeft,
-                                FontSize = 13
-                            }
+                                FontSize = 13,
+                            },
                         },
                         CraftChassisUIHeaderName
                     },
-                    { CreateCostLabel(player, freeCrafting, maxAllowedSockets, 2), CraftChassisUIName },
-                    { CreateCraftButton(player, freeCrafting, maxAllowedSockets, 2), CraftChassisUIName },
-                    { CreateCostLabel(player, freeCrafting, maxAllowedSockets, 3), CraftChassisUIName },
-                    { CreateCraftButton(player, freeCrafting, maxAllowedSockets, 3), CraftChassisUIName },
-                    { CreateCostLabel(player, freeCrafting, maxAllowedSockets, 4), CraftChassisUIName },
-                    { CreateCraftButton(player, freeCrafting, maxAllowedSockets, 4), CraftChassisUIName },
+                    { CreateCostLabel(plugin, player, freeCrafting, maxAllowedSockets, 2), CraftChassisUIName },
+                    { CreateCraftButton(plugin, player, freeCrafting, maxAllowedSockets, 2), CraftChassisUIName },
+                    { CreateCostLabel(plugin, player, freeCrafting, maxAllowedSockets, 3), CraftChassisUIName },
+                    { CreateCraftButton(plugin, player, freeCrafting, maxAllowedSockets, 3), CraftChassisUIName },
+                    { CreateCostLabel(plugin, player, freeCrafting, maxAllowedSockets, 4), CraftChassisUIName },
+                    { CreateCraftButton(plugin, player, freeCrafting, maxAllowedSockets, 4), CraftChassisUIName },
                 };
 
                 CuiHelper.AddUi(player, cuiElements);
@@ -475,47 +471,6 @@ namespace Oxide.Plugins
         #endregion
 
         #region Configuration
-
-        private Configuration GetDefaultConfig() => new Configuration();
-
-        private class Configuration : SerializableConfiguration
-        {
-            [JsonProperty("ChassisCost")]
-            public ChassisCostMap ChassisCostMap = new ChassisCostMap();
-
-            [JsonProperty("FuelAmount")]
-            public int FuelAmount = 0;
-
-            [JsonProperty("EnableEffects")]
-            public bool EnableEffects = true;
-
-            [JsonProperty("SetOwner")]
-            public bool SetOwner = false;
-        }
-
-        private class ChassisCostMap
-        {
-            [JsonProperty("2sockets")]
-            public ChassisCost ChassisCost2 = new ChassisCost
-            {
-                itemShortName = "metal.fragments",
-                amount = 200,
-            };
-
-            [JsonProperty("3sockets")]
-            public ChassisCost ChassisCost3 = new ChassisCost
-            {
-                itemShortName = "metal.fragments",
-                amount = 300,
-            };
-
-            [JsonProperty("4sockets")]
-            public ChassisCost ChassisCost4 = new ChassisCost
-            {
-                itemShortName = "metal.fragments",
-                amount = 400,
-            };
-        }
 
         private class ChassisCost
         {
@@ -532,20 +487,68 @@ namespace Oxide.Plugins
             public bool useServerRewards = false;
         }
 
-        #endregion
-
-        #region Configuration Boilerplate
-
-        private class SerializableConfiguration
+        private class ChassisCostMap
         {
-            public string ToJson() => JsonConvert.SerializeObject(this);
+            [JsonProperty("2sockets")]
+            public ChassisCost ChassisCost2 = new()
+            {
+                itemShortName = "metal.fragments",
+                amount = 200,
+            };
 
-            public Dictionary<string, object> ToDictionary() => JsonHelper.Deserialize(ToJson()) as Dictionary<string, object>;
+            [JsonProperty("3sockets")]
+            public ChassisCost ChassisCost3 = new()
+            {
+                itemShortName = "metal.fragments",
+                amount = 300,
+            };
+
+            [JsonProperty("4sockets")]
+            public ChassisCost ChassisCost4 = new()
+            {
+                itemShortName = "metal.fragments",
+                amount = 400,
+            };
+        }
+
+        private class Configuration : BaseConfiguration
+        {
+            [JsonProperty("ChassisCost")]
+            public ChassisCostMap ChassisCostMap = new();
+
+            [JsonProperty("FuelAmount")]
+            public int FuelAmount = 0;
+
+            [JsonProperty("EnableEffects")]
+            public bool EnableEffects = true;
+
+            [JsonProperty("SetOwner")]
+            public bool SetOwner = false;
+        }
+
+        private Configuration GetDefaultConfig() => new();
+
+        #region Configuration Helpers
+
+        private class BaseConfiguration
+        {
+            public string ToJson()
+            {
+                return JsonConvert.SerializeObject(this);
+            }
+
+            public Dictionary<string, object> ToDictionary()
+            {
+                return JsonHelper.Deserialize(ToJson()) as Dictionary<string, object>;
+            }
         }
 
         private static class JsonHelper
         {
-            public static object Deserialize(string json) => ToObject(JToken.Parse(json));
+            public static object Deserialize(string json)
+            {
+                return ToObject(JToken.Parse(json));
+            }
 
             private static object ToObject(JToken token)
             {
@@ -565,7 +568,7 @@ namespace Oxide.Plugins
             }
         }
 
-        private bool MaybeUpdateConfig(SerializableConfiguration config)
+        private bool MaybeUpdateConfig(BaseConfiguration config)
         {
             var currentWithDefaults = config.ToDictionary();
             var currentRaw = Config.ToDictionary(x => x.Key, x => x.Value);
@@ -574,17 +577,14 @@ namespace Oxide.Plugins
 
         private bool MaybeUpdateConfigDict(Dictionary<string, object> currentWithDefaults, Dictionary<string, object> currentRaw)
         {
-            bool changed = false;
+            var changed = false;
 
             foreach (var key in currentWithDefaults.Keys)
             {
-                object currentRawValue;
-                if (currentRaw.TryGetValue(key, out currentRawValue))
+                if (currentRaw.TryGetValue(key, out var currentRawValue))
                 {
-                    var defaultDictValue = currentWithDefaults[key] as Dictionary<string, object>;
                     var currentDictValue = currentRawValue as Dictionary<string, object>;
-
-                    if (defaultDictValue != null)
+                    if (currentWithDefaults[key] is Dictionary<string, object> defaultDictValue)
                     {
                         if (currentDictValue == null)
                         {
@@ -605,20 +605,23 @@ namespace Oxide.Plugins
             return changed;
         }
 
-        protected override void LoadDefaultConfig() => _pluginConfig = GetDefaultConfig();
+        protected override void LoadDefaultConfig()
+        {
+            _config = GetDefaultConfig();
+        }
 
         protected override void LoadConfig()
         {
             base.LoadConfig();
             try
             {
-                _pluginConfig = Config.ReadObject<Configuration>();
-                if (_pluginConfig == null)
+                _config = Config.ReadObject<Configuration>();
+                if (_config == null)
                 {
                     throw new JsonException();
                 }
 
-                if (MaybeUpdateConfig(_pluginConfig))
+                if (MaybeUpdateConfig(_config))
                 {
                     LogWarning("Configuration appears to be outdated; updating and saving");
                     SaveConfig();
@@ -635,8 +638,10 @@ namespace Oxide.Plugins
         protected override void SaveConfig()
         {
             Log($"Configuration changes saved to {Name}.json");
-            Config.WriteObject(_pluginConfig, true);
+            Config.WriteObject(_config, true);
         }
+
+        #endregion
 
         #endregion
 
