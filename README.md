@@ -6,7 +6,7 @@ Also recommended: [Monument Lifts](https://umod.org/plugins/monument-lifts) (add
 
 ## UI Screenshots
 
-![Craft Chassis UI Buttons](https://i.imgur.com/3euUusz.png)
+![Craft Chassis UI Buttons](https://raw.githubusercontent.com/WheteThunger/CraftChassis/master/Images/CraftChassis.png)
 
 ## Permissions
 
