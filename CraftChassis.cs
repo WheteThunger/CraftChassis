@@ -110,10 +110,14 @@ namespace Oxide.Plugins
                 return;
 
             if (_config.EnableEffects)
+            {
                 Effect.server.Run(SpawnEffect, car.transform.position);
+            }
 
             if (chassisCost != null)
+            {
                 ChargePlayer(basePlayer, chassisCost);
+            }
         }
 
         #endregion
@@ -132,7 +136,9 @@ namespace Oxide.Plugins
                 return null;
 
             if (_config.SetOwner)
+            {
                 car.OwnerID = player.userID;
+            }
 
             car.Spawn();
             AddOrRestoreFuel(car, player);
@@ -151,7 +157,9 @@ namespace Oxide.Plugins
 
             var fuelContainer = fuelSystem.GetFuelContainer();
             if (desiredFuelAmount < 0)
+            {
                 desiredFuelAmount = fuelContainer.allowedItem.stackable;
+            }
 
             var fuelItem = fuelContainer.inventory.FindItemByItemID(fuelContainer.allowedItem.itemid);
             if (fuelItem == null)
