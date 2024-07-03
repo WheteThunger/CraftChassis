@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.2.3")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.2.4")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
@@ -124,8 +124,8 @@ namespace Oxide.Plugins
         {
             var prefab = GetChassisPrefab(numSockets);
 
-            var position = carLift.GetNetworkPosition() + Vector3.up * 0.7f;
-            var rotation = Quaternion.Euler(0, carLift.GetNetworkRotation().eulerAngles.y - 90, 0);
+            var position = carLift.transform.position + Vector3.up * 0.7f;
+            var rotation = Quaternion.Euler(0, carLift.transform.eulerAngles.y - 90, 0);
 
             var car = GameManager.server.CreateEntity(prefab, position, rotation) as ModularCar;
             if (car == null)
@@ -146,7 +146,10 @@ namespace Oxide.Plugins
             if (desiredFuelAmount == 0 || !permission.UserHasPermission(player.UserIDString, PermissionFuel))
                 return;
 
-            var fuelContainer = car.GetFuelSystem().GetFuelContainer();
+            if (car.GetFuelSystem() is not EntityFuelSystem fuelSystem)
+                return;
+
+            var fuelContainer = fuelSystem.GetFuelContainer();
             if (desiredFuelAmount < 0)
                 desiredFuelAmount = fuelContainer.allowedItem.stackable;
 
