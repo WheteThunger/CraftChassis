@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Oxide.Plugins
 {
-    [Info("Craft Car Chassis", "WhiteThunder", "1.2.4")]
+    [Info("Craft Car Chassis", "WhiteThunder", "1.2.5")]
     [Description("Allows players to craft a modular car chassis at a car lift using a UI.")]
     internal class CraftChassis : CovalencePlugin
     {
@@ -225,13 +225,13 @@ namespace Oxide.Plugins
 
             if (chassisCost.UseEconomics && Economics != null)
             {
-                Economics.Call("Withdraw", basePlayer.userID, Convert.ToDouble(chassisCost.Amount));
+                Economics.Call("Withdraw", (ulong)basePlayer.userID, Convert.ToDouble(chassisCost.Amount));
                 return;
             }
 
             if (chassisCost.UseServerRewards && ServerRewards != null)
             {
-                ServerRewards.Call("TakePoints", basePlayer.userID, chassisCost.Amount);
+                ServerRewards.Call("TakePoints", (ulong)basePlayer.userID, chassisCost.Amount);
                 return;
             }
 
@@ -244,14 +244,14 @@ namespace Oxide.Plugins
         {
             if (chassisCost.UseEconomics && Economics != null)
             {
-                var balance = Economics.Call("Balance", basePlayer.userID);
+                var balance = Economics.Call("Balance", (ulong)basePlayer.userID);
                 currencyType = CurrencyType.Economics;
                 return balance as double? ?? 0;
             }
 
             if (chassisCost.UseServerRewards && ServerRewards != null)
             {
-                var points = ServerRewards.Call("CheckPoints", basePlayer.userID);
+                var points = ServerRewards.Call("CheckPoints", (ulong)basePlayer.userID);
                 currencyType = CurrencyType.ServerRewards;
                 return points is int i ? i : 0;
             }
